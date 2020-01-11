@@ -1,0 +1,41 @@
+language: go
+
+go:
+  - '1.13.x'
+
+services:
+- docker
+
+sudo: required
+
+env:
+  matrix:
+  - GO111MODULE=on
+
+install:
+  - go get honnef.co/go/tools/cmd/staticcheck
+  - go get -u golang.org/x/lint/golint
+  - go mod download
+  - git submodule update --init
+
+before_script:
+  - go vet ./...
+  - go build ./...
+  - go test -run xxxx ./...
+
+script:
+  - make verifiers
+  - diff -u <(echo -n) <(gofmt -d -s `find . -type f -name '*.go' -not -path "./vendor/*"`)
+  - diff -u <(echo -n) <(golint `go list ./... | grep -v /vendor/`)
+  - go test -race -short -coverprofile=coverage.txt ./...
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
+notifications:
+  email: false
+
+cache:
+  directories:
+    - $GOPATH/pkg/mod
+    - $HOME/.cache/go-build

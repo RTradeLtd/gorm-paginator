@@ -15,10 +15,10 @@ type Param struct {
 	ShowSQL bool
 }
 
-// Paginator is the response returned by Paging
+// Paged is the response returned by Paging
 // this should be fed to a http request response.
-// If using gin-gonic, you should use c.JSON(200, Paginator)
-type Paginator struct {
+// If using gin-gonic, you should use c.JSON(200, Paged)
+type Paged struct {
 	TotalRecord int         `json:"total_record"`
 	TotalPage   int         `json:"total_page"`
 	Records     interface{} `json:"records"`
@@ -30,7 +30,7 @@ type Paginator struct {
 }
 
 // Paging is used to return a paged result from the database
-func Paging(p *Param, result interface{}) (*Paginator, error) {
+func Paging(p *Param, result interface{}) (*Paged, error) {
 	db := p.DB
 	if p.ShowSQL {
 		db = db.Debug()
@@ -47,7 +47,7 @@ func Paging(p *Param, result interface{}) (*Paginator, error) {
 		}
 	}
 	var (
-		paginator     = new(Paginator)
+		paged         = new(Paged)
 		count, offset int
 	)
 	if err := db.Model(result).Count(&count).Error; err != nil {
@@ -61,21 +61,21 @@ func Paging(p *Param, result interface{}) (*Paginator, error) {
 	if err := db.Limit(p.Limit).Offset(offset).Find(result).Error; err != nil {
 		return nil, err
 	}
-	paginator.TotalRecord = count
-	paginator.Records = result
-	paginator.Page = p.Page
-	paginator.Offset = offset
-	paginator.Limit = p.Limit
-	paginator.TotalPage = int(math.Ceil(float64(count) / float64(p.Limit)))
+	paged.TotalRecord = count
+	paged.Records = result
+	paged.Page = p.Page
+	paged.Offset = offset
+	paged.Limit = p.Limit
+	paged.TotalPage = int(math.Ceil(float64(count) / float64(p.Limit)))
 	if p.Page > 1 {
-		paginator.PrevPage = p.Page - 1
+		paged.PrevPage = p.Page - 1
 	} else {
-		paginator.PrevPage = p.Page
+		paged.PrevPage = p.Page
 	}
-	if p.Page == paginator.TotalPage {
-		paginator.NextPage = p.Page
+	if p.Page == paged.TotalPage {
+		paged.NextPage = p.Page
 	} else {
-		paginator.NextPage = p.Page + 1
+		paged.NextPage = p.Page + 1
 	}
-	return paginator, nil
+	return paged, nil
 }

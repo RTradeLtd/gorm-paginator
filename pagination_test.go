@@ -32,19 +32,36 @@ func Test_Pagination(t *testing.T) {
 			}
 		}
 	}
-
 	var users []User
 	tests := []struct {
-		name  string
-		param *Param
+		name    string
+		param   *Param
+		model   interface{}
+		wantErr bool
 	}{
-		{"Defaults", &Param{DB: db.Where("id > ?", 0)}},
-		{"Non-Defaults", &Param{DB: db.Where("id > ?", 0), Page: 2, Limit: 10, OrderBy: []string{"name desc"}}},
-		{"Debug", &Param{DB: db.Where("id > ?", 0), ShowSQL: true}},
+		{"Defaults", &Param{
+			DB: db.Where("id > ?", 0),
+		}, &users, false},
+		{"Non-Defaults", &Param{
+			DB:      db.Where("id > ?", 0),
+			Page:    2,
+			Limit:   10,
+			OrderBy: []string{"name desc"},
+		}, &users, false},
+		{"Debug", &Param{
+			DB:      db.Where("id > ?", 0),
+			ShowSQL: true,
+		}, &users, false},
+		{"BadModel", &Param{
+			DB: db.Where("id > ?", 0),
+		}, &struct{ Dog string }{}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			Paging(tt.param, &users)
+			_, err := Paging(tt.param, tt.model)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Paging() err %v, wantErr %v", err, tt.wantErr)
+			}
 		})
 	}
 }

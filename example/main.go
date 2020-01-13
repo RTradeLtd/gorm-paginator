@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 
-	"github.com/RTradeLtd/gpaginator"
+	gpaginator "github.com/RTradeLtd/gpaginator"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
@@ -40,7 +41,7 @@ func main() {
 
 	var users []User
 
-	pagination.Paging(&pagination.Param{
+	gpaginator.Paging(&gpaginator.Param{
 		DB:      db.Where("id > ?", 0),
 		Page:    1,
 		Limit:   3,
@@ -56,14 +57,18 @@ func main() {
 		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "3"))
 		var users []User
 
-		paginator := pagination.Paging(&pagination.Param{
+		paged, err := gpaginator.Paging(&gpaginator.Param{
 			DB:      db,
 			Page:    page,
 			Limit:   limit,
 			OrderBy: []string{"id desc"},
 			ShowSQL: true,
 		}, &users)
-		c.JSON(200, paginator)
+		if err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+		c.JSON(200, paged)
 	})
 
 	r.Run()
